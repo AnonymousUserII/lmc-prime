@@ -91,7 +91,7 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
             elif term == "BRA":
                 line[j] = "JMP"
         line_len: int = len(line)
-        if line_len < 2 and ' '.join(line).upper() != "HLT":
+        if line_len < 2 and ' '.join(line).upper() not in ("HLT", "DAT"):
             if ext is False or line[0] not in EXT_KEYWORDS:
                 return handle_err(f"Line {i} has too few terms")
         if 3 < line_len:
@@ -99,7 +99,7 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
         
         if line_len == 2:  # Expected: OPCODE OPERAND or LABEL OPCODE (OPCODE can only be HLT or an EXT keyword)
             if line[0].upper() not in opcodes:  # Then must be LABEL OPCODE
-                if line[1].upper() not in ("HLT", *EXT_KEYWORDS):  # If OPCODE requires an operand
+                if line[1].upper() not in ("HLT", "DAT", *EXT_KEYWORDS):  # If OPCODE requires an operand
                     if line[1].upper() not in opcodes:
                         return handle_err(f"Line {i} has invalid opcode: {line[1]}")
                     return handle_err(f"Line {i} has too few terms")
