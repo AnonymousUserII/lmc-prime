@@ -1,0 +1,9 @@
+EXT FALSE    ; Determines whether to use an extended instruction set or not
+RET TRUE    ; Determines whether to print out the final value of the accumulator after halting
+
+BGN LDA ONE ; Load value of `1` from label ONE into accumulator
+    ADD TWO ; Add value of `2` from label TWO, resulting in `3`
+    HLT
+
+ONE DAT 1
+TWO DAT 2

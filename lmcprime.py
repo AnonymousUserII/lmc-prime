@@ -8,7 +8,7 @@ KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4, "J
 EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11, "OTB": 12}
 MAX_12B: int = 2**12 - 1
 MAX_13B: int = 2**13 - 1
-MAX_16B: int = 2 ** 16 - 1
+MAX_16B: int = 2**16 - 1
 
 
 def parse_line(raw_line: str) -> tuple | None:
@@ -84,8 +84,9 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
     known_labels: dict[str, int] = {}  # Hold labels and their line number reference
     for i, line in enumerate(code[2:]):
         line_len: int = len(line)
-        if line_len < 2 and ' '.join(line).upper() not in ("HLT", *EXT_KEYWORDS):
-            return handle_err(f"Line {i} has too few terms")
+        if line_len < 2 and ' '.join(line).upper() != "HLT":
+            if ext is False or line[0] not in EXT_KEYWORDS:
+                return handle_err(f"Line {i} has too few terms")
         if 3 < line_len:
             return handle_err(f"Line {i} has too many terms")
         
@@ -155,7 +156,7 @@ def set_mailboxes(code: tuple, labels: dict[str, int], ext: bool) -> tuple[int]:
     Puts the assembly code into their respective mailboxes
     :return: The state of the mailboxes after loading in the code
     """
-    mailboxes: list = [0 for _ in range(MAX_12B if ext else MAX_13B)]
+    mailboxes: list = [0 for _ in range(MAX_12B if ext else MAX_13B)] + [0]  # Account for exclusive range
     shift: int = 16 - (4 if ext else 3)
     keywords = {**KEYWORDS, **EXT_KEYWORDS}
     
@@ -182,51 +183,73 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
     program_counter: int = 0
     shift: int = 16 - (4 if ext else 3)
     
+    opcodes = {**KEYWORDS, **EXT_KEYWORDS}
+    
     while True:  # This is realistic (See: Halting Problem)
         instruction_hold = mailboxes[program_counter]
         opcode = instruction_hold >> shift
         operand = instruction_hold % 2 ** shift
+        program_counter += 1
         
-        if opcode == 0:  # HLT
+        if opcode == opcodes["HLT"]:
             break
-        elif opcode == 1:  # LDA
+        elif opcode == opcodes["LDA"]:
             accumulator = mailboxes[operand]
-        elif opcode == 2:  # STA
+        elif opcode == opcodes["STA"]:
             mailboxes[operand] = accumulator
-        elif opcode == 3:  # ADD
+        elif opcode == opcodes["ADD"]:
             accumulator = (accumulator + mailboxes[operand]) % MAX_16B
-        elif opcode == 4:  # SUB
+        elif opcode == opcodes["SUB"]:
             accumulator = (accumulator - mailboxes[operand]) % MAX_16B
-        elif opcode == 5:  # JMP
+        elif opcode == opcodes["JMP"]:
             program_counter = operand
             continue
-        elif opcode == 6:  # JMZ
+        elif opcode == opcodes["JMZ"]:
             if accumulator == 0:
                 program_counter = operand
                 continue
-        elif opcode == 7:  # JMN
+        elif opcode == opcodes["JMN"]:
             if accumulator:
                 program_counter = operand
                 continue
-        
-        # Start of Extended Opcodes
-        elif opcode == 8:  # INP
+        elif opcode == opcodes["INP"]:
             accumulator = input()
-        elif opcode == 9:  # OUT
+        elif opcode == opcodes["OUT"]:
             print(accumulator)
-        elif opcode == 10:  # OTA
+        elif opcode == opcodes["OTA"]:
             print(chr(accumulator % 256))
-        elif opcode == 11:  # OTS
+        elif opcode == opcodes["OTS"]:
             sign = accumulator >> 16
             print(accumulator % MAX_16B - sign * MAX_16B)
-        elif opcode == 12:  # OTB
+        elif opcode == opcodes["OTB"]:
             print("{0:016b}".format(accumulator))
-        
-        program_counter += 1
     
     if ret:
         print(accumulator)
     return accumulator
+
+
+def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None, separate_ops: bool = False) -> None:
+    """
+    Prints mailbox contents of a range, all if no range given
+    Contents displayed as binaries
+    """
+    if last is None:
+        last = len(mailboxes) - 1
+    
+    if separate_ops:
+        print("ADDR  OPCODE OPERAND")
+        for address in range(first, last + 1):
+            content = f"{mailboxes[address]:016b}"
+            opc_end: int = 4 if ext else 3
+            separator = "   " if ext else "    "
+            
+            ops: tuple = content[:opc_end], content[opc_end:]
+            print(f"{address:>4}:", f'{separator.join(ops)}')
+    else:
+        for address in range(first, last + 1):
+            print(f"{address:>4}: {mailboxes[address]:016b}")
+    return None
 
 
 def main(file_path) -> None:
@@ -237,7 +260,7 @@ def main(file_path) -> None:
     valid = check_syntax(parsed_code)
     
     if valid is False:
-        print("Cannot correctly parse LMCPrime code.")
+        print("Cannot parse LMCPrime code in", file_path)
         return None
     
     ext, ret, labels = valid
@@ -247,4 +270,5 @@ def main(file_path) -> None:
 
 
 if __name__ == '__main__':
-    exit(main("sample.lmcp"))
+    code_to_run = "sample_code/sample.lmcp"
+    exit(main(code_to_run))
