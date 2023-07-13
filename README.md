@@ -3,6 +3,8 @@ This is a blatant ripoff of a Little Man Computer. See here: https://peterhiggin
 
 Made in Python because
 
+`/lmc-prime` contains an extension for Visual Studio Code if syntax highlighting is desired.
+
 ## Differences
 This project was designed as a 16-bit system instead of a 3-digit.
 Furthermore, the number of mailboxes has drastically increased from 100 to as many as can be pointed to by the operand.

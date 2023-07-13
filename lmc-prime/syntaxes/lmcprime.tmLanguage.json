@@ -1,0 +1,45 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "LMC Prime",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#configuration"
+		},
+		{
+			"include": "#opcodes"
+		},
+		{
+			"include": "#numbers"
+		}
+	],
+	"repository": {
+		"comments": {
+			"patterns": [{
+				"name": "comment.line.lmcprime",
+				"match": ";.*$"
+			}]
+		},
+		"configuration": {
+			"patterns": [{
+				"name": "keyword.control.lmcprime",
+				"match": "\\b(?i)(EXT|RET) (0|1|FALSE|TRUE)\\b"
+			}]
+		},
+		"opcodes": {
+			"patterns": [{
+				"name": "string.quoted.double.lmcprime",
+				"match": "\\b(?i)(HLT|LDA|STA|ADD|SUB|JMP|JMZ|JMN|INP|OUT|OTA|OTS|OTB|BRP|BRA|BRZ|DAT)\\b"
+			}]
+		},
+		"numbers": {
+			"patterns": [{
+				"name": "constant.numeric.lmcprime",
+				"match": "\\b[0-9]+\\b"
+			}]
+		}
+	},
+	"scopeName": "source.lmcprime"
+}

@@ -1,0 +1,27 @@
+{
+  "name": "lmc-prime",
+  "displayName": "LMC Prime",
+  "description": "Off-brand Little Man Computer",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "publisher": "¯\\_(ツ)_/¯",
+  "icon": "icon.png",
+  "contributes": {
+    "languages": [{
+      "id": "lmcprime",
+      "aliases": ["LMC Prime", "lmcprime"],
+      "extensions": [".lmcp"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "lmcprime",
+      "scopeName": "source.lmcprime",
+      "path": "./syntaxes/lmcprime.tmLanguage.json"
+    }]
+  }
+}
