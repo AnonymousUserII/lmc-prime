@@ -308,7 +308,7 @@ def main(file_path) -> None:
         kws = {**kws, **EXT_KEYWORDS}
     mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
-    return execute(mailboxes, ext, ret, printout=True, code_length=10)
+    return execute(mailboxes, ext, ret)
 
 
 if __name__ == '__main__':
