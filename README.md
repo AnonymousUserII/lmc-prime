@@ -15,8 +15,8 @@ The assembly code has two prefixing lines, EXT and RET.
 * RET determines whether the code will print out the final value of the accumulator after halting
 
 ## Instruction Set
-| Name  |    Opcode | Description                                   |
-|-------|----------:|-----------------------------------------------|
+| Name  | Opcode    | Description                                   |
+|-------|-----------|-----------------------------------------------|
 | `HLT` | `0 (000)` | Halt the program                              |
 | `LDA` | `1 (001)` | Load contents of address into accumulator     |
 | `STA` | `2 (010)` | Store contents of accumulator into address    |
@@ -27,10 +27,11 @@ The assembly code has two prefixing lines, EXT and RET.
 | `JMN` | `7 (111)` | Jump to address if accumulator is non-zero    |
 
 ### Extended Instruction Set
-| Name  |      Opcode | Description                                               |
-|-------|------------:|-----------------------------------------------------------|
+| Name  | Opcode      | Description                                               |
+|-------|-------------|-----------------------------------------------------------|
 | `INP` | ` 8 (1000)` | Ask for user input into the accumulator                   |
 | `OUT` | ` 9 (1001)` | Output contents of accumulator                            |
 | `OTA` | `10 (1010)` | Output contents of accumulator as an ASCII character      |
 | `OTS` | `11 (1011)` | Output contents of accumulator as a signed 16-bit integer |
 | `OTB` | `12 (1100)` | Output contents of accumulator as a binary integer        |
+| `BRP` | `13 (1101)` | Mimics LMC's Branch if accumulator >= 0 as signed integer |

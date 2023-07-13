@@ -5,7 +5,7 @@ Instructions of use can be found in `README.md`
 
 COMMENT_CHAR: str = ';'
 KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4, "JMP": 5, "JMZ": 6, "JMN": 7, "DAT": 0}
-EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11, "OTB": 12}
+EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11, "OTB": 12, "BRP": 13}
 MAX_12B: int = 2**12 - 1
 MAX_13B: int = 2**13 - 1
 MAX_16B: int = 2**16 - 1
@@ -83,6 +83,11 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
     three_len_lines: list = []
     known_labels: dict[str, int] = {}  # Hold labels and their line number reference
     for i, line in enumerate(code[2:]):
+        for j, term in enumerate(line):  # Replace some LMZ opcodes with equivalents
+            if term == "BRZ":
+                line[j] = "JMZ"
+            elif term == "BRA":
+                line[j] = "JMP"
         line_len: int = len(line)
         if line_len < 2 and ' '.join(line).upper() != "HLT":
             if ext is False or line[0] not in EXT_KEYWORDS:
@@ -90,10 +95,23 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
         if 3 < line_len:
             return handle_err(f"Line {i} has too many terms")
         
-        if line_len == 2:  # Expected: OPCODE OPERAND
-            if line[0].upper() not in opcodes:
-                return handle_err(f"Line {i} has invalid opcode: {line[0]}")
+        if line_len == 2:  # Expected: OPCODE OPERAND or LABEL OPCODE (OPCODE can only be HLT or an EXT keyword)
+            if line[0].upper() not in opcodes:  # Then must be LABEL OPCODE
+                if line[1].upper() not in ("HLT", *EXT_KEYWORDS):  # If OPCODE requires an operand
+                    if line[1].upper() not in opcodes:
+                        return handle_err(f"Line {i} has invalid opcode: {line[1]}")
+                    return handle_err(f"Line {i} has too few terms")
+                
+                # Check if operand is a valid label
+                if line[0].upper() in known_labels:  # If label already used
+                    return handle_err(f"Line {i} uses label {line[0]} already used in line {known_labels[line[0]]}")
+                if line[0][0].isdigit():  # If invalid label
+                    return handle_err(f"Line {i}: Label {line[0]} must not start with a numeral")
+                known_labels[line[0].upper()] = i
+                continue
+                
             two_len_lines.append((line, i))  # OPERAND may be a label, not all labels known
+        
         elif line_len == 3:  # Expected: LABEL OPCODE OPERAND
             if line[0].upper() in opcodes:
                 return handle_err(f"Line {i} has too many terms")
@@ -163,13 +181,15 @@ def set_mailboxes(code: tuple, labels: dict[str, int], ext: bool) -> tuple[int]:
     for i, line in enumerate(code):
         if "HLT" in line:
             continue
+        is_lk: bool = line[-1].upper() not in labels and len(line) == 2 and not line[-1].isdigit()  # Is LABEL KEYWORD
+        
         # Add operand
         if line[-1].isdigit():
             mailboxes[i] += int(line[-1])
-        elif line[0] not in EXT_KEYWORDS:
+        elif line[0] not in EXT_KEYWORDS and not is_lk:
             mailboxes[i] += labels[line[-1].upper()]
         # Add opcode
-        mailboxes[i] += keywords[line[-2 if len(line) > 1 else -1].upper()] << shift
+        mailboxes[i] += keywords[line[-2 if (len(line) > 1 and not is_lk) else -1].upper()] << shift
     
     return mailboxes
 
@@ -216,7 +236,7 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
         elif opcode == opcodes["INP"]:
             while True:
                 try:
-                    accumulator = int(input()) % 2**16
+                    accumulator = int(input("Input: ")) % 2**16
                     break
                 except ValueError:
                     print("Please enter a valid integer")
@@ -229,6 +249,10 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
             print(accumulator % 2**16 - sign * MAX_16B)
         elif opcode == opcodes["OTB"]:
             print(f"{accumulator:016b}")
+        elif opcode == opcodes["BRP"]:
+            if accumulator >> 15 == 0:
+                program_counter = operand
+                continue
     
     if ret:
         print(accumulator)
