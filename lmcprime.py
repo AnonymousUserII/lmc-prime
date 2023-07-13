@@ -4,8 +4,10 @@ Instructions of use can be found in `README.md`
 """
 
 COMMENT_CHAR: str = ';'
-KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4, "JMP": 5, "JMZ": 6, "JMN": 7, "DAT": 0}
-EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11, "OTB": 12, "BRP": 13}
+KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4,
+                            "JMP": 5, "JMZ": 6, "JMN": 7, "DAT": 0}
+EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11,
+                                "OTB": 12}
 MAX_12B: int = 2**12 - 1
 MAX_13B: int = 2**13 - 1
 MAX_16B: int = 2**16 - 1
@@ -105,10 +107,9 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
                 # Check if operand is a valid label
                 if line[0].upper() in known_labels:  # If label already used
                     return handle_err(f"Line {i} uses label {line[0]} already used in line {known_labels[line[0]]}")
-                if line[0][0].isdigit():  # If invalid label
-                    return handle_err(f"Line {i}: Label {line[0]} must not start with a numeral")
-                known_labels[line[0].upper()] = i
-                continue
+                if not line[0].isdigit():  # Don't treat number as label
+                    known_labels[line[0].upper()] = i
+                    continue
                 
             two_len_lines.append((line, i))  # OPERAND may be a label, not all labels known
         
@@ -118,9 +119,8 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
             else:
                 if line[0].upper() in known_labels:  # If label already used
                     return handle_err(f"Line {i} uses label {line[0]} already used in line {known_labels[line[0]]}")
-                if line[0][0].isdigit():  # If invalid label
-                    return handle_err(f"Line {i}: Label {line[0]} must not start with a numeral")
-                known_labels[line[0].upper()] = i
+                if not line[0].isdigit():  # Don't treat number as label
+                    known_labels[line[0].upper()] = i
             three_len_lines.append((line, i))
     
     for line in two_len_lines:
@@ -169,14 +169,13 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
     return ext, ret, known_labels
 
 
-def set_mailboxes(code: tuple, labels: dict[str, int], ext: bool) -> tuple[int]:
+def set_mailboxes(code, labels, ext, keywords) -> tuple[int]:
     """
     Puts the assembly code into their respective mailboxes
     :return: The state of the mailboxes after loading in the code
     """
     mailboxes: list = [0 for _ in range(MAX_12B if ext else MAX_13B)] + [0]  # Account for exclusive range
     shift: int = 16 - (4 if ext else 3)
-    keywords = {**KEYWORDS, **EXT_KEYWORDS}
     
     for i, line in enumerate(code):
         if "HLT" in line:
@@ -194,7 +193,8 @@ def set_mailboxes(code: tuple, labels: dict[str, int], ext: bool) -> tuple[int]:
     return mailboxes
 
 
-def execute(mailboxes: list, ext: bool, ret: bool) -> int:
+def execute(mailboxes: list, ext: bool, ret: bool, printout: bool = False,
+            code_length: int = None) -> int:
     """
     Runs the code from the first mailbox
     :return: Accumulator's final value
@@ -206,6 +206,10 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
     opcodes = {**KEYWORDS, **EXT_KEYWORDS}
     
     while True:  # This is realistic (See: Halting Problem)
+        if printout and code_length is not None:
+            print(f"PC: {program_counter} |", 
+                  f"ACC: {accumulator} ({accumulator:016b})")
+            print_mailbox_range(mailboxes, ext, last=code_length - 1)
         instruction_hold = mailboxes[program_counter]
         opcode = instruction_hold >> shift
         operand = instruction_hold % 2 ** shift
@@ -229,7 +233,7 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
                 program_counter = operand
                 continue
         elif opcode == opcodes["JMN"]:
-            if accumulator:
+            if accumulator >> 15:
                 program_counter = operand
                 continue
         
@@ -249,17 +253,14 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
             print(accumulator % 2**16 - sign * MAX_16B)
         elif opcode == opcodes["OTB"]:
             print(f"{accumulator:016b}")
-        elif opcode == opcodes["BRP"]:
-            if accumulator >> 15 == 0:
-                program_counter = operand
-                continue
     
     if ret:
         print(accumulator)
     return accumulator
 
 
-def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None, separate_ops: bool = False) -> None:
+def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None,
+                        separate_ops: bool = True) -> None:
     """
     Prints mailbox contents of a range, all if no range given
     Contents displayed as binaries
@@ -268,17 +269,25 @@ def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None, separa
         last = len(mailboxes) - 1
     
     if separate_ops:
-        print("ADDR  OPCODE OPERAND")
+        keywords = {**KEYWORDS, **EXT_KEYWORDS} if ext else KEYWORDS
+        reversed_opcodes = {v: k for k, v in keywords.items()}
+        
+        print("ADDRESS", "            " if ext else "             ",
+              "OPCODE", "   " if ext else "    ", "OPERAND")
         for address in range(first, last + 1):
-            content = f"{mailboxes[address]:016b}"
             opc_end: int = 4 if ext else 3
-            separator = "   " if ext else "    "
+            content = f"{mailboxes[address]:016b}"
             
-            ops: tuple = content[:opc_end], content[opc_end:]
-            print(f"{address:>4}:", f'{separator.join(ops)}')
+            ops: tuple = (f"{reversed_opcodes[int(content[:opc_end], 2)]} " \
+                            f"({content[:opc_end]})",
+                          f"{content[opc_end:]} " \
+                            f"({f'{int(content[opc_end:], 2)}'})")
+            print(f"{address:>4} ({address:0{f'{16 - opc_end}'}b}):",
+                  f"{' '.join(ops)}")
     else:
         for address in range(first, last + 1):
             print(f"{address:>4}: {mailboxes[address]:016b}")
+    print()
     return None
 
 
@@ -294,11 +303,19 @@ def main(file_path) -> None:
         return None
     
     ext, ret, labels = valid
-    mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext)
+    kws = KEYWORDS
+    if ext:
+        kws = {**kws, **EXT_KEYWORDS}
+    mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
-    return execute(mailboxes, ext, ret)
+    return execute(mailboxes, ext, ret, printout=True, code_length=10)
 
 
 if __name__ == '__main__':
-    code_to_run = "sample_code/sample.lmcp"
+    from sys import argv
+    if len(argv) > 1:
+        code_to_run = argv[1]
+    else:
+        code_to_run = "sample_code/sample.lmcp"
+    
     exit(main(code_to_run))

@@ -1,0 +1,14 @@
+EXT TRUE
+RET TRUE
+
+    INP     ; First input
+    STA HLD
+    INP     ; Second input
+    SUB HLD
+    JMN BGR ; If 2nd - 1st < 0, 1st is larger
+    ADD HLD ; 2nd - 1st + 1st = 2nd
+    HLT
+BGR LDA HLD ; LDA 1st
+    HLT
+
+HLD DAT 0
