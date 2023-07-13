@@ -212,17 +212,23 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
             if accumulator:
                 program_counter = operand
                 continue
+        
         elif opcode == opcodes["INP"]:
-            accumulator = input()
+            while True:
+                try:
+                    accumulator = int(input()) % MAX_16B
+                    break
+                except ValueError:
+                    print("Please enter a valid integer")
         elif opcode == opcodes["OUT"]:
             print(accumulator)
         elif opcode == opcodes["OTA"]:
             print(chr(accumulator % 256))
         elif opcode == opcodes["OTS"]:
-            sign = accumulator >> 16
+            sign = accumulator >> 15
             print(accumulator % MAX_16B - sign * MAX_16B)
         elif opcode == opcodes["OTB"]:
-            print("{0:016b}".format(accumulator))
+            print(f"{accumulator:016b}")
     
     if ret:
         print(accumulator)
