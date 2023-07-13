@@ -198,9 +198,9 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
         elif opcode == opcodes["STA"]:
             mailboxes[operand] = accumulator
         elif opcode == opcodes["ADD"]:
-            accumulator = (accumulator + mailboxes[operand]) % MAX_16B
+            accumulator = (accumulator + mailboxes[operand]) % 2**16
         elif opcode == opcodes["SUB"]:
-            accumulator = (accumulator - mailboxes[operand]) % MAX_16B
+            accumulator = (accumulator - mailboxes[operand]) % 2**16
         elif opcode == opcodes["JMP"]:
             program_counter = operand
             continue
@@ -216,17 +216,17 @@ def execute(mailboxes: list, ext: bool, ret: bool) -> int:
         elif opcode == opcodes["INP"]:
             while True:
                 try:
-                    accumulator = int(input()) % MAX_16B
+                    accumulator = int(input()) % 2**16
                     break
                 except ValueError:
                     print("Please enter a valid integer")
         elif opcode == opcodes["OUT"]:
             print(accumulator)
         elif opcode == opcodes["OTA"]:
-            print(chr(accumulator % 256))
+            print(chr(accumulator % 2**8))
         elif opcode == opcodes["OTS"]:
             sign = accumulator >> 15
-            print(accumulator % MAX_16B - sign * MAX_16B)
+            print(accumulator % 2**16 - sign * MAX_16B)
         elif opcode == opcodes["OTB"]:
             print(f"{accumulator:016b}")
     
