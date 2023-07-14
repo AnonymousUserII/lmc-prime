@@ -7,7 +7,7 @@ COMMENT_CHAR: str = ';'
 KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4,
                             "JMP": 5, "JMZ": 6, "JMN": 7, "DAT": 0}
 EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11,
-                                "OTB": 12}
+                                "OTB": 12, "OTC": 13}
 MAX_12B: int = 2**12 - 1
 MAX_13B: int = 2**13 - 1
 MAX_16B: int = 2**16 - 1
@@ -150,7 +150,8 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
         if line[0][1].upper() == "DAT":
             if not 0 <= int(line[0][2]) <= MAX_16B:
                 return handle_err(f"Line {line[1]}: data must be between 0 and {MAX_16B}")
-                
+            continue
+                    
         # Check if opcode is from extended, since they don't include an operand
         if line[0][0].upper() in EXT_KEYWORDS:
             continue
@@ -163,6 +164,7 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
             if line[0][2].upper() not in known_labels:
                 return handle_err(f"Line {line[1]} contains invalid operand {line[0][2]}")
     
+        
     if ' '.join(code[1]).upper() in ("RET TRUE", "RET 1"):
         ret = True
     
@@ -180,6 +182,7 @@ def set_mailboxes(code, labels, ext, keywords) -> tuple[int]:
     for i, line in enumerate(code):
         if "HLT" in line:
             continue
+        
         is_lk: bool = line[-1].upper() not in labels and len(line) == 2 and not line[-1].isdigit()  # Is LABEL KEYWORD
         
         # Add operand
@@ -253,6 +256,13 @@ def execute(mailboxes: list, ext: bool, ret: bool, printout: bool = False,
             print(accumulator % 2**16 - sign * MAX_16B)
         elif opcode == opcodes["OTB"]:
             print(f"{accumulator:016b}")
+        elif opcode == opcodes["OTC"]:
+            temp = f"{accumulator:016b}"
+            print(temp.replace('0', ' '))
+        else:
+            print("Invalid opcode:", opcode)
+            print("Terminating program")
+            return
     
     if ret:
         print(accumulator)
@@ -263,14 +273,14 @@ def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None,
                         separate_ops: bool = True) -> None:
     """
     Prints mailbox contents of a range, all if no range given
-    Contents displayed as binaries
+    Contents displayed as binaries and representations
     """
     if last is None:
         last = len(mailboxes) - 1
     
     if separate_ops:
         keywords = {**KEYWORDS, **EXT_KEYWORDS} if ext else KEYWORDS
-        reversed_opcodes = {v: k for k, v in keywords.items()}
+        reversed_opcodes = {v: k for k, v in reversed(keywords.items())}
         
         print("ADDRESS", "            " if ext else "             ",
               "OPCODE", "   " if ext else "    ", "OPERAND")
@@ -278,10 +288,15 @@ def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None,
             opc_end: int = 4 if ext else 3
             content = f"{mailboxes[address]:016b}"
             
-            ops: tuple = (f"{reversed_opcodes[int(content[:opc_end], 2)]} " \
-                            f"({content[:opc_end]})",
-                          f"{content[opc_end:]} " \
-                            f"({f'{int(content[opc_end:], 2)}'})")
+            try:
+                ops: tuple = (f"{reversed_opcodes[int(content[:opc_end], 2)]} " \
+                                f"({content[:opc_end]})",
+                            f"{content[opc_end:]} " \
+                                f"({f'{int(content[opc_end:], 2)}'})")
+            except KeyError:  # Line is obviously a DAT
+                ops: tuple = (f"DAT    {content[:opc_end]}" \
+                              f"{content[opc_end:]} ({f'{int(content, 2)}'})",)
+                pass
             print(f"{address:>4} ({address:0{f'{16 - opc_end}'}b}):",
                   f"{' '.join(ops)}")
     else:
@@ -308,7 +323,7 @@ def main(file_path) -> None:
         kws = {**kws, **EXT_KEYWORDS}
     mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
-    return execute(mailboxes, ext, ret)
+    return execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
 
 
 if __name__ == '__main__':

@@ -27,6 +27,7 @@ The assembly code has two prefixing lines, EXT and RET.
 | `JMP` | `5 (101)` | Jump to address                               |
 | `JMZ` | `6 (110)` | Jump to address if accumulator is zero        |
 | `JMN` | `7 (111)` | Jump to address if accumulator is negative as 16-bit signed integer    |
+| `DAT` | `— (000)` | Indicates data in its address |
 
 ### Extended Instruction Set
 | Name  | Opcode      | Description                                               |
@@ -36,3 +37,4 @@ The assembly code has two prefixing lines, EXT and RET.
 | `OTA` | `10 (1010)` | Output contents of accumulator as an ASCII character      |
 | `OTS` | `11 (1011)` | Output contents of accumulator as a signed 16-bit integer |
 | `OTB` | `12 (1100)` | Output contents of accumulator as a binary integer        |
+| `OTC` | `13 (1101)` | OTB, but converts zeroes to spaces                        |
