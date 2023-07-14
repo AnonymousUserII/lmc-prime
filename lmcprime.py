@@ -261,7 +261,8 @@ def execute(mailboxes: list, ext: bool, ret: bool, printout: bool = False,
             print(temp.replace('0', ' '))
         else:
             print("Invalid opcode:", opcode)
-            print("Terminating program")
+            print("Make sure the program counter does not point to DAT\n" \
+                  "Terminating program")
             return
     
     if ret:

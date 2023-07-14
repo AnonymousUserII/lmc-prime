@@ -18,7 +18,7 @@ The assembly code has two prefixing lines, EXT and RET.
 
 ## Instruction Set
 | Name  | Opcode    | Description                                   |
-|-------|-----------|-----------------------------------------------|
+|:-----:|:---------:|-----------------------------------------------|
 | `HLT` | `0 (000)` | Halt the program                              |
 | `LDA` | `1 (001)` | Load contents of address into accumulator     |
 | `STA` | `2 (010)` | Store contents of accumulator into address    |
@@ -27,11 +27,11 @@ The assembly code has two prefixing lines, EXT and RET.
 | `JMP` | `5 (101)` | Jump to address                               |
 | `JMZ` | `6 (110)` | Jump to address if accumulator is zero        |
 | `JMN` | `7 (111)` | Jump to address if accumulator is negative as 16-bit signed integer    |
-| `DAT` | `— (000)` | Indicates data in its address |
+| `DAT` | — | Indicates data in its address |
 
 ### Extended Instruction Set
 | Name  | Opcode      | Description                                               |
-|-------|-------------|-----------------------------------------------------------|
+|:-----:|:-----------:|-----------------------------------------------------------|
 | `INP` | ` 8 (1000)` | Ask for user input into the accumulator                   |
 | `OUT` | ` 9 (1001)` | Output contents of accumulator                            |
 | `OTA` | `10 (1010)` | Output contents of accumulator as an ASCII character      |
