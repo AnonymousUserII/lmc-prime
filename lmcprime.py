@@ -78,7 +78,7 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
         ext = True
         max_op_int = MAX_12B  # One more bit for instruction reduces size of operand 13->12
         opcodes = {**opcodes, **EXT_KEYWORDS}
-    opcodes = opcodes.keys()
+    opcodes = opcodes.keys()  # Numeric opcodes not needed
     
     # Check opcodes and operands, acknowledge labels
     two_len_lines: list = []
@@ -324,7 +324,7 @@ def main(file_path) -> None:
         kws = {**kws, **EXT_KEYWORDS}
     mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
-    return execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
+    # return execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
 
 
 if __name__ == '__main__':

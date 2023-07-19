@@ -1,0 +1,42 @@
+EXT TRUE
+RET FALSE
+
+    INP     ; First input is dividend
+    STA DND
+ASK INP     ; Second input is divisor
+    JMZ DV0 ; If divisor is 0
+    STA DSR
+GO  LDA DND
+    SUB DSR ; Subtract divisor from dividend
+    JMN FIN ; If quotient * divisor > dividend
+    STA DND
+    LDA QUO ; Add one to quotient
+    ADD ONE
+    STA QUO
+    JMP GO  ; Repeat process
+DV0 LDA N
+    OTA
+    LDA O
+    OTA
+    JMP ASK ; Ask for divisor again
+FIN ADD DSR ; Prepare remainder
+    STA DND ; Store remainder in dividend
+    LDA QUO ; Load quotient
+    OUT
+    LDA DND
+    JMZ END
+    LDA R
+    OTA
+    LDA DND
+    OUT
+END HLT
+
+    DAT 65500
+
+DND DAT
+DSR DAT
+QUO DAT 0
+ONE DAT 1
+N   DAT 78
+O   DAT 79
+R   DAT 82

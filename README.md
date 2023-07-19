@@ -2,6 +2,7 @@
 This is a blatant ripoff of a Little Man Computer. See here: https://peterhigginson.co.uk/lmc/
 
 Made in Python because
+Made in Rust because
 
 `/lmc-prime` contains an extension for Visual Studio Code if syntax highlighting is desired.
 
