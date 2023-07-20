@@ -2,6 +2,7 @@
 This is a bad ripoff of the Little Man Computer, with extra steps
 Instructions of use can be found in `README.md`
 """
+from time import perf_counter
 
 COMMENT_CHAR: str = ';'
 KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4,
@@ -310,7 +311,7 @@ def print_mailbox_range(mailboxes, ext, first: int = 0, last: int = None,
 def main(file_path) -> None:
     with open(file_path, 'r') as file:
         file_contents = file.read()
-    
+    start = perf_counter()
     parsed_code = parse_code(file_contents)
     valid = check_syntax(parsed_code)
     
@@ -324,7 +325,9 @@ def main(file_path) -> None:
         kws = {**kws, **EXT_KEYWORDS}
     mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
-    # return execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
+    execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
+    print(f"Finished in {perf_counter() - start:.6f} seconds")
+    return 0
 
 
 if __name__ == '__main__':

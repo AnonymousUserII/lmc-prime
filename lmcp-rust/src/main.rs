@@ -5,11 +5,11 @@
  */
 use std::{
     collections::HashMap,
-    io::Stdin,
+    io::{stdin, stdout, Stdin, Write},
     num::ParseIntError,
     str::SplitWhitespace,
     string::String,
-    //time::Instant,
+    time::Instant,
 };
 
 const COMMENT_CHAR: char = ';';
@@ -138,99 +138,104 @@ fn check_syntax(
     }
 
     for (i, line) in parsed_code.iter().enumerate() {
-        if line.len() == 1 {
-            // Expect operandless OPCODE
-            let opcode: String = line[0].to_ascii_uppercase();
-            if opless_keywords.contains(&opcode) {
-                continue;
-            }
-            if keywords.contains(&opcode) {
-                return Err((SyntaxError::MissingOperand, vec![i.to_string(), opcode]));
-            }
-            return Err((
-                SyntaxError::UnknownOpcode,
-                vec![i.to_string(), line[0].to_string()],
-            ));
-        } else if line.len() == 2 {
-            // Expect OPCODE OPERAND or LABEL OPCODE
-            if keywords.contains(&line[0].to_ascii_uppercase()) {
-                // Must be OPCODE OPERAND
-                let operand: String = line[1].to_ascii_uppercase();
-                let operand_num: Result<usize, _> = operand.parse(); // Check if operand is a positive integer
-                if operand_num.is_err() {
-                    // Operand is not a number
-                    // Check if operand is a known label
-                    if labels.contains(&operand) {
-                        continue;
-                    }
-                    return Err((
-                        SyntaxError::InvalidOperand,
-                        vec![i.to_string(), line[1].to_string()],
-                    ));
-                }
+        match line.len() {
+            1 => {
+                // Expect operandless OPCODE
                 let opcode: String = line[0].to_ascii_uppercase();
-                let operand: usize = operand_num.unwrap();
-                if opcode == "DAT" {
-                    // Operand max value is 2^16 - 1
-                    if (MAX_16B as usize) < operand {
-                        return Err((
-                            SyntaxError::BigOperand,
-                            vec![i.to_string(), operand.to_string(), MAX_16B.to_string()],
-                        ));
-                    }
-                } else if (op_size as usize) < operand {
-                    // Check if operand is within bounds
-                    return Err((
-                        SyntaxError::BigOperand,
-                        vec![i.to_string(), operand.to_string(), op_size.to_string()],
-                    ));
-                }
-            } else {
-                // Must be LABEL OPCODE
-                let opcode: String = line[1].to_ascii_uppercase();
-                if !keywords.contains(&opcode) {
-                    return Err((SyntaxError::UnknownOpcode, vec![i.to_string()]));
-                }
-                let label: String = line[0].to_ascii_uppercase();
-                if !labels.contains(&label.clone()) {
-                    return Err((SyntaxError::UnknownLabel, vec![i.to_string(), label]));
-                }
                 if opless_keywords.contains(&opcode) {
                     continue;
                 }
-                return Err((SyntaxError::MissingOperand, vec![i.to_string(), opcode]));
-            }
-        } else if line.len() == 3 {
-            // Expect LABEL OPCODE OPERAND
-            let opcode: String = line[1].to_ascii_uppercase();
-            if !keywords.contains(&opcode) {
+                if keywords.contains(&opcode) {
+                    return Err((SyntaxError::MissingOperand, vec![i.to_string(), opcode]));
+                }
                 return Err((
                     SyntaxError::UnknownOpcode,
-                    vec![i.to_string(), line[1].to_string()],
-                ));
-            }
-            let operand: String = line[2].to_ascii_uppercase();
-            if keywords.contains(&operand) {
-                return Err((
-                    SyntaxError::InvalidOperand,
-                    vec![i.to_string(), line[2].to_string()],
-                ));
-            }
-            let label: String = line[0].to_ascii_uppercase();
-            if keywords.contains(&label) {
-                return Err((
-                    SyntaxError::InvalidLabel,
                     vec![i.to_string(), line[0].to_string()],
                 ));
             }
-            if !labels.contains(&label.clone()) {
-                return Err((SyntaxError::UnknownLabel, vec![i.to_string(), label]));
+            2 => {
+                // Expect OPCODE OPERAND or LABEL OPCODE
+                if keywords.contains(&line[0].to_ascii_uppercase()) {
+                    // Must be OPCODE OPERAND
+                    let operand: String = line[1].to_ascii_uppercase();
+                    let operand_num: Result<usize, _> = operand.parse(); // Check if operand is a positive integer
+                    if operand_num.is_err() {
+                        // Operand is not a number
+                        // Check if operand is a known label
+                        if labels.contains(&operand) {
+                            continue;
+                        }
+                        return Err((
+                            SyntaxError::InvalidOperand,
+                            vec![i.to_string(), line[1].to_string()],
+                        ));
+                    }
+                    let opcode: String = line[0].to_ascii_uppercase();
+                    let operand: usize = operand_num.unwrap();
+                    if opcode == "DAT" {
+                        // Operand max value is 2^16 - 1
+                        if (MAX_16B as usize) < operand {
+                            return Err((
+                                SyntaxError::BigOperand,
+                                vec![i.to_string(), operand.to_string(), MAX_16B.to_string()],
+                            ));
+                        }
+                    } else if (op_size as usize) < operand {
+                        // Check if operand is within bounds
+                        return Err((
+                            SyntaxError::BigOperand,
+                            vec![i.to_string(), operand.to_string(), op_size.to_string()],
+                        ));
+                    }
+                } else {
+                    // Must be LABEL OPCODE
+                    let opcode: String = line[1].to_ascii_uppercase();
+                    if !keywords.contains(&opcode) {
+                        return Err((SyntaxError::UnknownOpcode, vec![i.to_string()]));
+                    }
+                    let label: String = line[0].to_ascii_uppercase();
+                    if !labels.contains(&label.clone()) {
+                        return Err((SyntaxError::UnknownLabel, vec![i.to_string(), label]));
+                    }
+                    if opless_keywords.contains(&opcode) {
+                        continue;
+                    }
+                    return Err((SyntaxError::MissingOperand, vec![i.to_string(), opcode]));
+                }
             }
-        } else {
-            return Err((
-                SyntaxError::TooManyTerms,
-                vec![i.to_string(), line.len().to_string()],
-            ));
+            3 => {
+                // Expect LABEL OPCODE OPERAND
+                let opcode: String = line[1].to_ascii_uppercase();
+                if !keywords.contains(&opcode) {
+                    return Err((
+                        SyntaxError::UnknownOpcode,
+                        vec![i.to_string(), line[1].to_string()],
+                    ));
+                }
+                let operand: String = line[2].to_ascii_uppercase();
+                if keywords.contains(&operand) {
+                    return Err((
+                        SyntaxError::InvalidOperand,
+                        vec![i.to_string(), line[2].to_string()],
+                    ));
+                }
+                let label: String = line[0].to_ascii_uppercase();
+                if keywords.contains(&label) {
+                    return Err((
+                        SyntaxError::InvalidLabel,
+                        vec![i.to_string(), line[0].to_string()],
+                    ));
+                }
+                if !labels.contains(&label.clone()) {
+                    return Err((SyntaxError::UnknownLabel, vec![i.to_string(), label]));
+                }
+            }
+            _ => {
+                return Err((
+                    SyntaxError::TooManyTerms,
+                    vec![i.to_string(), line.len().to_string()],
+                ));
+            }
         }
     }
 
@@ -242,7 +247,7 @@ fn spit_syntax_error(error: SyntaxError, args: Vec<String>) {
     match error {
         InvalidConfig => {
             eprintln!(
-                "LMC Prime code does not start with:\n\
+                "LMC Prime script does not start with:\n\
                 1 | EXT (TRUE|FALSE)\n2 | RET (TRUE|FALSE)"
             );
         }
@@ -281,9 +286,7 @@ fn spit_syntax_error(error: SyntaxError, args: Vec<String>) {
                 "Too many terms at line {} (expected 1-3, got {})",
                 args[0], args[1]
             );
-        } // _ => {
-          //     eprintln!("Well that\'s your fault, isn\'t it?");
-          // }
+        }
     }
 }
 
@@ -405,8 +408,9 @@ fn execute(
                             // INP
                             loop {
                                 print!("Input: ");
+                                stdout().flush().unwrap();
                                 let mut input = String::new();
-                                let stdin: Stdin = std::io::stdin();
+                                let stdin: Stdin = stdin();
                                 match stdin.read_line(&mut input) {
                                     Ok(_) => {}
                                     Err(_) => {
@@ -542,6 +546,7 @@ fn main() {
     }
     let file_path = &args[1];
 
+    let start = Instant::now();
     let file_read: Result<String, std::io::Error> = std::fs::read_to_string(file_path);
     let file_contents: String = match file_read {
         Ok(contents) => {
@@ -555,7 +560,6 @@ fn main() {
 
     // println!("{}", file_contents);
 
-    // let start = Instant::now();
     let parsed_code = parse_code(&file_contents);
     // println!("{:?}", parsed_code);
 
@@ -606,14 +610,13 @@ fn main() {
     }
     let mut mailboxes: Vec<u16> = create_mailboxes(&parsed_code, &op_map, &label_map, ext, op_size);
 
-    // println!("{:?}", Instant::now().duration_since(start));
-
     let _: u16 = execute(
         &mut mailboxes,
         ext,
         ret,
         &op_map,
-        true,
+        false,
         parsed_code.len() as u16,
     );
+    println!("{:?}", Instant::now().duration_since(start));
 }
