@@ -54,7 +54,7 @@ fn parse_code(raw_assembly: &str) -> Vec<Vec<&str>> {
     /* Parses text from lmcp file */
     let mut parsed_code: Vec<Vec<&str>> = Vec::new();
 
-    for line in raw_assembly.split(['\n', '\t']) {
+    for line in raw_assembly.split(['\n']) {
         let parsed_line: Vec<&str> = parse_line(line);
         if !parsed_line.is_empty() {
             parsed_code.push(parsed_line);
@@ -65,16 +65,12 @@ fn parse_code(raw_assembly: &str) -> Vec<Vec<&str>> {
 
 fn check_configuration(parsed_code: &[Vec<&str>]) -> bool {
     /* Check if configuration lines are valid */
-    if parsed_code[0].len() != 2
-        || parsed_code[1].len() != 2
-        || parsed_code[0][0] != "EXT"
-        || parsed_code[1][0] != "RET"
-        || !BOOLS.contains(&parsed_code[0][1].to_uppercase().as_str())
-        || !BOOLS.contains(&parsed_code[1][1].to_uppercase().as_str())
-    {
-        return false;
-    }
-    true
+    return parsed_code[0].len() == 2
+        && parsed_code[1].len() == 2
+        && parsed_code[0][0] == "EXT"
+        && parsed_code[1][0] == "RET"
+        && BOOLS.contains(&parsed_code[0][1].to_uppercase().as_str())
+        && BOOLS.contains(&parsed_code[1][1].to_uppercase().as_str());
 }
 
 fn get_configuration(code: &[Vec<&str>]) -> (bool, bool) {
