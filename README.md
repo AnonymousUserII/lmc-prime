@@ -25,9 +25,9 @@ The assembly code has two prefixing lines, EXT and RET.
 | `STA` | `2 (010)` | Store contents of accumulator into address    |
 | `ADD` | `3 (011)` | Add contents of address to accumulator        |
 | `SUB` | `4 (100)` | Subtract contents of address from accumulator |
-| `JMP` | `5 (101)` | Jump to address                               |
-| `JMZ` | `6 (110)` | Jump to address if accumulator is zero        |
-| `JMN` | `7 (111)` | Jump to address if accumulator is negative as 16-bit signed integer    |
+| `BRA` | `5 (101)` | Branch to address (Unconditional)             |
+| `BRZ` | `6 (110)` | Branch to address if accumulator is zero      |
+| `BRP` | `7 (111)` | Branch to address if accumulator is positive as 16-bit signed integer    |
 | `DAT` | — | Indicates data in its address |
 
 ### Extended Instruction Set

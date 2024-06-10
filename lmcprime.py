@@ -2,15 +2,16 @@
 This is a bad ripoff of the Little Man Computer, with extra steps
 Instructions of use can be found in `README.md`
 """
-from time import perf_counter
+from time import perf_counter_ns as perf_counter
 
 COMMENT_CHAR: str = ';'
 KEYWORDS: dict[str, int] = {"HLT": 0, "LDA": 1, "STA": 2, "ADD": 3, "SUB": 4,
-                            "JMP": 5, "JMZ": 6, "JMN": 7, "DAT": 0}
+                            "BRA": 5, "BRZ": 6, "BRP": 7, "DAT": 0}
 EXT_KEYWORDS: dict[str, int] = {"INP": 8, "OUT": 9, "OTA": 10, "OTS": 11,
                                 "OTB": 12, "OTC": 13}
 MAX_12B: int = 2**12 - 1
 MAX_13B: int = 2**13 - 1
+MAX_15B: int = 2**15 - 1
 MAX_16B: int = 2**16 - 1
 
 
@@ -86,11 +87,6 @@ def check_syntax(code: tuple, print_error: bool = True) -> tuple[bool] | bool:
     three_len_lines: list = []
     known_labels: dict[str, int] = {}  # Hold labels and their line number reference
     for i, line in enumerate(code[2:]):
-        for j, term in enumerate(line):  # Replace some LMZ opcodes with equivalents
-            if term == "BRZ":
-                line[j] = "JMZ"
-            elif term == "BRA":
-                line[j] = "JMP"
         line_len: int = len(line)
         if line_len < 2 and ' '.join(line).upper() not in ("HLT", "DAT"):
             if ext is False or line[0] not in EXT_KEYWORDS:
@@ -229,15 +225,15 @@ def execute(mailboxes: list, ext: bool, ret: bool, printout: bool = False,
             accumulator = (accumulator + mailboxes[operand]) % 2**16
         elif opcode == opcodes["SUB"]:
             accumulator = (accumulator - mailboxes[operand]) % 2**16
-        elif opcode == opcodes["JMP"]:
+        elif opcode == opcodes["BRA"]:
             program_counter = operand
             continue
-        elif opcode == opcodes["JMZ"]:
+        elif opcode == opcodes["BRZ"]:
             if accumulator == 0:
                 program_counter = operand
                 continue
-        elif opcode == opcodes["JMN"]:
-            if accumulator >> 15:
+        elif opcode == opcodes["BRP"]:
+            if 0 < accumulator < 2**15:
                 program_counter = operand
                 continue
         
@@ -326,7 +322,7 @@ def main(file_path) -> None:
     mailboxes: tuple[int] = set_mailboxes(parsed_code[2:], labels, ext, kws)
     
     execute(mailboxes, ext, ret, printout=False, code_length=len(parsed_code) - 1)
-    print(f"Finished in {perf_counter() - start:.6f} seconds")
+    print(f"Finished in {((perf_counter() - start)/1_000_000):.6f} ms")
     return 0
 
 
@@ -335,6 +331,5 @@ if __name__ == '__main__':
     if len(argv) > 1:
         code_to_run = argv[1]
     else:
-        code_to_run = "sample_code/sample.lmcp"
-    
+        code_to_run = ""
     exit(main(code_to_run))

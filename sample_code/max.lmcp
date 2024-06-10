@@ -2,13 +2,13 @@ EXT TRUE
 RET TRUE
 
     INP     ; First input
-    STA HLD
+    STA FST
     INP     ; Second input
-    SUB HLD
-    JMN BGR ; If 2nd - 1st < 0, 1st is larger
-    ADD HLD ; 2nd - 1st + 1st = 2nd
+    SUB FST
+    BRP LES ; If 2nd - 1st > 0, 2nd is larger
+    LDA FST ; LDA 1st
     HLT
-BGR LDA HLD ; LDA 1st
+LES ADD FST ; (2nd - 1st) + 1st = 2nd
     HLT
 
-HLD DAT 0
+FST DAT

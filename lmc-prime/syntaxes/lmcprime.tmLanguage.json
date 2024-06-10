@@ -31,7 +31,7 @@
 		"opcodes": {
 			"patterns": [{
 				"name": "string.quoted.double.lmcprime",
-				"match": "\\b(?i)(HLT|LDA|STA|ADD|SUB|JMP|JMZ|JMN|DAT|INP|OUT|OTA|OTS|OTB|OTC|BRA|BRZ)\\b"
+				"match": "\\b(?i)(HLT|LDA|STA|ADD|SUB|BRA|BRZ|BRP|DAT|INP|OUT|OTA|OTS|OTB|OTC)\\b"
 			}]
 		},
 		"numbers": {

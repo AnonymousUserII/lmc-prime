@@ -4,27 +4,29 @@ RET FALSE
     INP     ; First input is dividend
     STA DND
 ASK INP     ; Second input is divisor
-    JMZ DV0 ; If divisor is 0
+    BRZ DV0 ; If divisor is 0
     STA DSR
 GO  LDA DND
     SUB DSR ; Subtract divisor from dividend
-    JMN FIN ; If quotient * divisor > dividend
-    STA DND
+    BRP CON ; If quotient * divisor still > dividend
+    BRZ CON ; If remainder is 0, go one more round for counting
+    BRA FIN ; Multiple subtraction process finished
+CON STA DND
     LDA QUO ; Add one to quotient
     ADD ONE
     STA QUO
-    JMP GO  ; Repeat process
+    BRA GO  ; Repeat process
 DV0 LDA N
     OTA
     LDA O
     OTA
-    JMP ASK ; Ask for divisor again
+    BRA ASK ; Ask for divisor again
 FIN ADD DSR ; Prepare remainder
     STA DND ; Store remainder in dividend
     LDA QUO ; Load quotient
     OUT
     LDA DND
-    JMZ END
+    BRZ END
     LDA R
     OTA
     LDA DND

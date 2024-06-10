@@ -3,6 +3,7 @@
  * Instructions for use can be found in `README.md`
  * Rust port of the Python code
  */
+
 use std::{
     collections::HashMap,
     io::{stdin, stdout, Stdin, Write},
@@ -15,6 +16,7 @@ use std::{
 const COMMENT_CHAR: char = ';';
 const MAX_12B: u16 = 4095;
 const MAX_13B: u16 = 8191;
+const MAX_15B: u16 = 32767;
 const MAX_16B: u16 = 65535;
 
 type LabelReturn = Result<(Vec<String>, Vec<u16>), (SyntaxError, Vec<String>)>;
@@ -32,7 +34,7 @@ enum SyntaxError {
     LargeCode,
 }
 
-const KEYWORDS: [&str; 8] = ["HLT", "LDA", "STA", "ADD", "SUB", "JMP", "JMZ", "JMN"];
+const KEYWORDS: [&str; 8] = ["HLT", "LDA", "STA", "ADD", "SUB", "BRA", "BRZ", "BRP"];
 const EXTKEYWORDS: [&str; 6] = ["INP", "OUT", "OTA", "OTS", "OTB", "OTC"];
 const BOOLS: [&str; 4] = ["TRUE", "1", "FALSE", "0"];
 
@@ -40,14 +42,17 @@ fn parse_line(raw_line: &str) -> Vec<&str> {
     /* Puts each term of line into a vector, filtering comments */
     let comment_filtered: &str = raw_line.split(COMMENT_CHAR).next().unwrap();
     let line_split: SplitWhitespace<'_> = comment_filtered.split_whitespace();
-    let mut parsed_line: Vec<&str> = Vec::new();
-    for term in line_split {
-        if term.contains(';') {
-            break;
-        }
-        parsed_line.push(term);
-    }
-    parsed_line
+    // let mut parsed_line: Vec<&str> = Vec::new();
+    // for term in line_split {
+    //     let term: &str = match term {
+    //         "BRA" => "JMP",
+    //         "BRZ" => "JMZ",
+    //         _ => term,
+    //     };
+    //     parsed_line.push(term);
+    // }
+    // parsed_line
+    line_split.collect::<Vec<&str>>()
 }
 
 fn parse_code(raw_assembly: &str) -> Vec<Vec<&str>> {
@@ -65,16 +70,14 @@ fn parse_code(raw_assembly: &str) -> Vec<Vec<&str>> {
 
 fn check_configuration(parsed_code: &[Vec<&str>]) -> bool {
     /* Check if configuration lines are valid */
-    if parsed_code[0].len() != 2
-        || parsed_code[1].len() != 2
-        || parsed_code[0][0] != "EXT"
-        || parsed_code[1][0] != "RET"
-        || !BOOLS.contains(&parsed_code[0][1].to_uppercase().as_str())
-        || !BOOLS.contains(&parsed_code[1][1].to_uppercase().as_str())
-    {
-        return false;
-    }
-    true
+    let ext_bool: bool = BOOLS.contains(&parsed_code[0][1].to_uppercase().as_str());
+    let ret_bool: bool = BOOLS.contains(&parsed_code[1][1].to_uppercase().as_str());
+    parsed_code[0].len() == 2
+        && parsed_code[1].len() == 2
+        && parsed_code[0][0] == "EXT"
+        && parsed_code[1][0] == "RET"
+        && ext_bool
+        && ret_bool
 }
 
 fn get_configuration(code: &[Vec<&str>]) -> (bool, bool) {
@@ -88,7 +91,7 @@ fn get_configuration(code: &[Vec<&str>]) -> (bool, bool) {
 fn get_labels(parsed_code: &[Vec<&str>], keywords: &[String]) -> LabelReturn {
     /*
      * Gets labels in code and their corresponding line number
-     * If there is a duplicate label, returns (label, first occurence, offending occurrence)
+     * If there is a duplicate label, returns (label, first occurrence, offending occurrence)
      */
     let mut known_labels: Vec<String> = Vec::new();
     let mut known_labels_indexes: Vec<u16> = Vec::new();
@@ -341,30 +344,36 @@ fn execute(
     ret: bool,
     op_map: &HashMap<String, u8>,
     printout: bool,
+    step: bool,
     code_length: u16,
 ) -> u16 {
     /* Runs the code from the first mailbox
     Returns accumulator's final value */
     let mut accumulator: u16 = 0;
     let mut program_counter: u16 = 0;
-    let shift: u16 = if ext { 12 } else { 13 };
+    let opcode_shift: u16 = if ext { 12 } else { 13 };
+    let operand_section: u16 = if ext { MAX_12B } else { MAX_13B };
 
-    loop {
+    'proc_loop: loop {
         if printout && code_length > 0 {
             println!(
                 "PC: {} | ACC: {} ({:.016b})",
                 program_counter, accumulator, accumulator
             );
-            print_mailbox_range(mailboxes, op_map, ext, 0, code_length, true)
+            print_mailbox_range(mailboxes, op_map, ext, 0, code_length, true);
+            if step {
+                let mut input: String = String::new();
+                let _ = stdin().read_line(&mut input);
+            }
         }
         let instruction_load: u16 = mailboxes[program_counter as usize];
-        let opcode: u8 = (instruction_load >> shift) as u8;
-        let operand: u16 = instruction_load & (if ext { MAX_12B } else { MAX_13B });
+        let opcode: u8 = (instruction_load >> opcode_shift) as u8;
+        let operand: u16 = instruction_load & operand_section;
 
         match opcode {
             0 => {
                 // HLT
-                break;
+                break 'proc_loop;
             }
             1 => {
                 // LDA
@@ -383,20 +392,20 @@ fn execute(
                 accumulator -= mailboxes[operand as usize];
             }
             5 => {
-                // JMP
+                // BRA
                 program_counter = operand;
                 continue;
             }
             6 => {
-                // JMZ
+                // BRZ
                 if accumulator == 0 {
                     program_counter = operand;
                     continue;
                 }
             }
             7 => {
-                // JMN
-                if accumulator >> 15 == 1 {
+                // BRP
+                if 0 < accumulator && accumulator <= MAX_15B {
                     program_counter = operand;
                     continue;
                 }
@@ -409,7 +418,7 @@ fn execute(
                             loop {
                                 print!("Input: ");
                                 stdout().flush().unwrap();
-                                let mut input = String::new();
+                                let mut input: String = String::new();
                                 let stdin: Stdin = stdin();
                                 match stdin.read_line(&mut input) {
                                     Ok(_) => {}
@@ -422,6 +431,7 @@ fn execute(
                                         continue;
                                     }
                                 }
+
                                 let input: Result<u16, ParseIntError> = input.trim().parse::<u16>();
                                 if input.clone().is_ok() {
                                     accumulator = input.unwrap();
@@ -546,7 +556,6 @@ fn main() {
     }
     let file_path = &args[1];
 
-    let start = Instant::now();
     let file_read: Result<String, std::io::Error> = std::fs::read_to_string(file_path);
     let file_contents: String = match file_read {
         Ok(contents) => {
@@ -563,9 +572,11 @@ fn main() {
     let parsed_code = parse_code(&file_contents);
     // println!("{:?}", parsed_code);
 
+    let start = Instant::now();
     if !check_configuration(&parsed_code) {
         spit_syntax_error(SyntaxError::InvalidConfig, vec![])
     }
+    let finish = Instant::now();
     let (ext, ret): (bool, bool) = get_configuration(&parsed_code);
 
     // Get keywords for instruction set
@@ -600,15 +611,16 @@ fn main() {
 
     /* Code has been verified by this point */
     let mut op_map: HashMap<String, u8> = HashMap::with_capacity(keywords.len() + 1);
+    let mut label_map: HashMap<String, u16> = HashMap::with_capacity(op_size as usize);
     op_map.insert("DAT".to_string(), 0);
     for (i, keyword) in keywords.iter().enumerate() {
         op_map.insert(keyword.to_string(), i as u8);
     }
-    let mut label_map: HashMap<String, u16> = HashMap::with_capacity(op_size as usize);
     for (i, label) in known_labels.iter().enumerate() {
         label_map.insert(label.to_string(), known_labels_indexes[i]);
     }
     let mut mailboxes: Vec<u16> = create_mailboxes(&parsed_code, &op_map, &label_map, ext, op_size);
+    // print_mailbox_range(&mailboxes, &op_map, ext, 0, 6, true);
 
     let _: u16 = execute(
         &mut mailboxes,
@@ -616,7 +628,8 @@ fn main() {
         ret,
         &op_map,
         false,
+        false,
         parsed_code.len() as u16,
     );
-    println!("{:?}", Instant::now().duration_since(start));
+    println!("{:?}", finish.duration_since(start));
 }
