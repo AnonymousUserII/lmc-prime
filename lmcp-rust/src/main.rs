@@ -14,10 +14,10 @@ use std::{
 };
 
 const COMMENT_CHAR: char = ';';
-const MAX_12B: u16 = 4095;
-const MAX_13B: u16 = 8191;
-const MAX_15B: u16 = 32767;
-const MAX_16B: u16 = 65535;
+const MAX_12B: u16 = 0xfff;
+const MAX_13B: u16 = 0x1fff;
+const MAX_15B: u16 = 0x7fff;
+const MAX_16B: u16 = 0xffff;
 
 type LabelReturn = Result<(Vec<String>, Vec<u16>), (SyntaxError, Vec<String>)>;
 
@@ -42,16 +42,6 @@ fn parse_line(raw_line: &str) -> Vec<&str> {
     /* Puts each term of line into a vector, filtering comments */
     let comment_filtered: &str = raw_line.split(COMMENT_CHAR).next().unwrap();
     let line_split: SplitWhitespace<'_> = comment_filtered.split_whitespace();
-    // let mut parsed_line: Vec<&str> = Vec::new();
-    // for term in line_split {
-    //     let term: &str = match term {
-    //         "BRA" => "JMP",
-    //         "BRZ" => "JMZ",
-    //         _ => term,
-    //     };
-    //     parsed_line.push(term);
-    // }
-    // parsed_line
     line_split.collect::<Vec<&str>>()
 }
 
