@@ -1,10 +1,6 @@
 [package]
 name = "lmcp-rust"
 version = "0.1.0"
-edition = "2021"
 
 [features]
 strict = []
-
-[dependencies]
-cargo-watch = "8.4.0"
